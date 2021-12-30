@@ -1,7 +1,9 @@
+import time
 from os.path import exists
 from typing import Optional
 from runnable import Runnable
 from loraspi import GPIO, M0, M1, Serial, log
+from queue import Queue
 
 
 def _setupGPIO():
@@ -11,6 +13,7 @@ def _setupGPIO():
     GPIO.setup(M1, GPIO.OUT)
     GPIO.output(M0, GPIO.LOW)
     GPIO.output(M1, GPIO.HIGH)
+    time.sleep(1)
 
 
 class RxTx(Runnable):
@@ -21,11 +24,13 @@ class RxTx(Runnable):
     _buffer: Optional[bytes] = ""
     _dev: str = None
     _baud_rate: int = None
+    _message_queue: Queue = None
 
     def __init__(self, dev: str = "/dev/ttyS0", baud_rate: int = 9600):
         Runnable.__init__(self)
         self._dev = dev
         self._baud_rate = baud_rate
+        self._message_queue = Queue()
         _setupGPIO()
 
     def on_start(self):
@@ -47,10 +52,11 @@ class RxTx(Runnable):
         log.warning("This method should be overridden")
 
     def on_msg(self):
-        log.info("Received message: {}", self._buffer)
+        log.info(f"Received message: {self._buffer}")
 
     def work(self):
         if self._serial.inWaiting() > 0:
+            time.sleep(0.1)
             self._buffer = self._serial.read(self._serial.inWaiting())
             if self._buffer == self.RET_REG:
                 self.on_reg_0()
@@ -59,6 +65,12 @@ class RxTx(Runnable):
             if self._buffer != b"":
                 self.on_msg()
                 self._buffer = b""
+            if not self._message_queue.empty():
+                msg = self._message_queue.get()
+                log.debug("Sending message: {}", msg)
+                self._serial.write(f"{msg}\r\n".encode())
+        time.sleep(0.1)
+        log.debug("LoRaRxTx.work() end")
 
     def run(self) -> None:
         self.on_start()
@@ -67,4 +79,4 @@ class RxTx(Runnable):
         self.on_stop()
 
     def send_message(self, msg: bytes):
-        self._serial.write(msg)
+        self._message_queue.put(msg)

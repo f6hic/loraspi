@@ -1,3 +1,4 @@
 pyrunnable
 RPi.GPIO
 loguru
+pyserial

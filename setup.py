@@ -5,7 +5,7 @@ from setuptools import setup, find_packages
 setup(
     long_description=open("README.md", "r").read(),
     name="loraspi",
-    version="1.7",
+    version="1.8",
     description="library for lora stuff",
     author="Pascal Eberlein",
     author_email="pascal@eberlein.io",
@@ -18,7 +18,7 @@ setup(
     keywords="waveshare lora library",
     packages=find_packages(),
     install_requires=[
-        "pyrunnable", "loguru"
+        "pyrunnable", "loguru", "pyserial", "RPi.GPIO"
     ],
     long_description_content_type="text/markdown",
 )
